@@ -8,13 +8,13 @@ export function Header() {
     <header className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          {/* SageIntel Branding */}
+          {/* SAINTEL Branding */}
           <div className="flex items-center space-x-4">
             <div className="bg-white/10 p-2 rounded-lg">
               <div className="text-2xl font-bold">S</div>
             </div>
             <div>
-              <h1 className="text-2xl font-bold">SageIntel</h1>
+              <h1 className="text-2xl font-bold">SAINTEL</h1>
               <p className="text-sm opacity-90">Case Management System</p>
             </div>
           </div>
