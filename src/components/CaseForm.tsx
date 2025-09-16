@@ -34,7 +34,7 @@ export function CaseForm() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-2xl font-bold">Create New Case</CardTitle>
-              <p className="text-muted-foreground mt-1">Register a new case in the SAINTEL system</p>
+              <p className="text-muted-foreground mt-1">Register a new case in the SageIntel system</p>
             </div>
             <Badge variant="outline" className="text-lg px-4 py-2">
               {caseNumber}
