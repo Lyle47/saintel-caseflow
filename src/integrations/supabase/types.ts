@@ -14,16 +14,260 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_logs: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          case_id: string
+          created_at: string
+          description: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          case_id: string
+          created_at?: string
+          description: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          case_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      case_notes: {
+        Row: {
+          case_id: string
+          created_at: string
+          id: string
+          is_private: boolean
+          note: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          id?: string
+          is_private?: boolean
+          note: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          id?: string
+          is_private?: boolean
+          note?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_notes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      cases: {
+        Row: {
+          archived_at: string | null
+          assigned_to: string | null
+          case_number: string
+          case_type: string
+          closed_at: string | null
+          contact_info: string | null
+          created_at: string
+          created_by: string
+          date_of_birth: string | null
+          description: string | null
+          id: string
+          last_known_location: string | null
+          priority: string | null
+          status: Database["public"]["Enums"]["case_status"]
+          subject_name: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          assigned_to?: string | null
+          case_number: string
+          case_type: string
+          closed_at?: string | null
+          contact_info?: string | null
+          created_at?: string
+          created_by: string
+          date_of_birth?: string | null
+          description?: string | null
+          id?: string
+          last_known_location?: string | null
+          priority?: string | null
+          status?: Database["public"]["Enums"]["case_status"]
+          subject_name?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          assigned_to?: string | null
+          case_number?: string
+          case_type?: string
+          closed_at?: string | null
+          contact_info?: string | null
+          created_at?: string
+          created_by?: string
+          date_of_birth?: string | null
+          description?: string | null
+          id?: string
+          last_known_location?: string | null
+          priority?: string | null
+          status?: Database["public"]["Enums"]["case_status"]
+          subject_name?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "cases_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      volunteer_case_limits: {
+        Row: {
+          case_count: number
+          created_at: string
+          id: string
+          month_year: string
+          user_id: string
+        }
+        Insert: {
+          case_count?: number
+          created_at?: string
+          id?: string
+          month_year: string
+          user_id: string
+        }
+        Update: {
+          case_count?: number
+          created_at?: string
+          id?: string
+          month_year?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "volunteer_case_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_case_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      activity_type:
+        | "created"
+        | "updated"
+        | "assigned"
+        | "status_changed"
+        | "note_added"
+        | "closed"
+        | "archived"
+      case_status: "open" | "in_progress" | "closed" | "archived"
+      user_role: "admin" | "investigator" | "volunteer" | "readonly"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +394,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activity_type: [
+        "created",
+        "updated",
+        "assigned",
+        "status_changed",
+        "note_added",
+        "closed",
+        "archived",
+      ],
+      case_status: ["open", "in_progress", "closed", "archived"],
+      user_role: ["admin", "investigator", "volunteer", "readonly"],
+    },
   },
 } as const
