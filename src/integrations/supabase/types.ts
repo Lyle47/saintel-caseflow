@@ -256,6 +256,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      manage_volunteer_case_limit: {
+        Args: { p_case_count: number; p_month_year: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       activity_type:
