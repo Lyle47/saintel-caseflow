@@ -97,6 +97,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    // Validate email domain
+    if (!email.endsWith('@sageintel.co.za')) {
+      const domainError = { message: 'Registration is restricted to @sageintel.co.za email addresses only.' };
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: domainError.message,
+      });
+      return { error: domainError };
+    }
+
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({

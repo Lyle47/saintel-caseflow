@@ -10,87 +10,122 @@ import {
   Calendar,
   Search,
   Filter,
-  MoreVertical
+  MoreVertical,
+  Eye,
+  Edit,
+  Users,
+  Activity
 } from "lucide-react";
+import { useCases } from "@/hooks/useCases";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
 
 export function Dashboard() {
-  const stats = [
-    {
-      title: "Total Cases",
-      value: "127",
-      change: "+12%",
-      trend: "up",
-      icon: FileText,
-      color: "text-primary"
-    },
-    {
-      title: "Open Cases",
-      value: "43",
-      change: "+5",
-      trend: "up",
-      icon: Clock,
-      color: "text-warning"
-    },
-    {
-      title: "In Progress",
-      value: "62",
-      change: "-3",
-      trend: "down",
-      icon: AlertTriangle,
-      color: "text-accent"
-    },
-    {
-      title: "Closed Cases",
-      value: "22",
-      change: "+8",
-      trend: "up",
-      icon: CheckCircle,
-      color: "text-success"
-    }
-  ];
+  const { cases, loading } = useCases();
+  const { userProfile } = useAuth();
+  const [stats, setStats] = useState([
+    { title: "Total Cases", value: "0", change: "0%", trend: "up", icon: FileText, color: "text-primary" },
+    { title: "Open Cases", value: "0", change: "0%", trend: "up", icon: Clock, color: "text-warning" },
+    { title: "In Progress", value: "0", change: "0%", trend: "up", icon: AlertTriangle, color: "text-accent" },
+    { title: "Closed Cases", value: "0", change: "0%", trend: "up", icon: CheckCircle, color: "text-success" }
+  ]);
 
-  const recentCases = [
-    {
-      id: "SI-202412-001",
-      title: "Missing Person - Sarah Johnson",
-      type: "Missing Person",
-      status: "Open",
-      priority: "High",
-      assignee: "Det. Williams",
-      lastUpdate: "2 hours ago",
-      statusColor: "bg-warning"
-    },
-    {
-      id: "SI-202412-002", 
-      title: "Theft Investigation - Downtown Store",
-      type: "Theft",
-      status: "In Progress",
-      priority: "Medium",
-      assignee: "Det. Brown",
-      lastUpdate: "5 hours ago",
-      statusColor: "bg-accent"
-    },
-    {
-      id: "SI-202412-003",
-      title: "Fraud Case - Insurance Claim",
-      type: "Fraud",
-      status: "Closed",
-      priority: "Low",
-      assignee: "Det. Davis",
-      lastUpdate: "1 day ago",
-      statusColor: "bg-success"
-    },
-    {
-      id: "SI-202411-087",
-      title: "Missing Person - John Martinez",
-      type: "Missing Person", 
-      status: "In Progress",
-      priority: "High",
-      assignee: "Det. Wilson",
-      lastUpdate: "3 days ago",
-      statusColor: "bg-accent"
+  useEffect(() => {
+    if (cases.length > 0) {
+      const totalCases = cases.length;
+      const openCases = cases.filter(c => c.status === 'open').length;
+      const inProgressCases = cases.filter(c => c.status === 'in_progress').length;
+      const closedCases = cases.filter(c => c.status === 'closed').length;
+
+      setStats([
+        {
+          title: "Total Cases",
+          value: totalCases.toString(),
+          change: "+0%",
+          trend: "up" as const,
+          icon: FileText,
+          color: "text-primary"
+        },
+        {
+          title: "Open Cases", 
+          value: openCases.toString(),
+          change: "+0%",
+          trend: "up" as const,
+          icon: Clock,
+          color: "text-warning"
+        },
+        {
+          title: "In Progress",
+          value: inProgressCases.toString(),
+          change: "+0%",
+          trend: "up" as const,
+          icon: AlertTriangle,
+          color: "text-accent"
+        },
+        {
+          title: "Closed Cases",
+          value: closedCases.toString(),
+          change: "+0%",
+          trend: "up" as const,
+          icon: CheckCircle,
+          color: "text-success"
+        }
+      ]);
     }
-  ];
+  }, [cases]);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'open': return 'bg-warning';
+      case 'in_progress': return 'bg-accent';
+      case 'closed': return 'bg-success';
+      case 'archived': return 'bg-muted';
+      default: return 'bg-muted';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'open': return 'Open';
+      case 'in_progress': return 'In Progress';
+      case 'closed': return 'Closed';
+      case 'archived': return 'Archived';
+      default: return status;
+    }
+  };
+
+  const getPriorityVariant = (priority?: string) => {
+    switch (priority?.toLowerCase()) {
+      case 'high': return 'destructive' as const;
+      case 'medium': return 'default' as const;
+      case 'low': return 'secondary' as const;
+      default: return 'outline' as const;
+    }
+  };
+
+  // Show most recent 10 cases
+  const recentCases = cases.slice(0, 10);
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-muted rounded w-1/2 mb-2"></div>
+                  <div className="h-4 bg-muted rounded w-2/3"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -156,39 +191,61 @@ export function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {recentCases.map((case_) => (
+                {recentCases.length > 0 ? recentCases.map((case_) => (
                   <tr key={case_.id} className="border-b hover:bg-muted/50 transition-colors">
                     <td className="py-3 px-4">
-                      <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{case_.id}</code>
+                      <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{case_.case_number}</code>
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-medium">{case_.title}</div>
+                      {case_.subject_name && (
+                        <div className="text-sm text-muted-foreground">{case_.subject_name}</div>
+                      )}
                     </td>
                     <td className="py-3 px-4">
-                      <Badge variant="outline">{case_.type}</Badge>
+                      <Badge variant="outline">{case_.case_type}</Badge>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center">
-                        <div className={`w-2 h-2 rounded-full mr-2 ${case_.statusColor}`}></div>
-                        <span className="text-sm font-medium">{case_.status}</span>
+                        <div className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(case_.status)}`}></div>
+                        <span className="text-sm font-medium">{getStatusLabel(case_.status)}</span>
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <Badge 
-                        variant={case_.priority === 'High' ? 'destructive' : case_.priority === 'Medium' ? 'default' : 'secondary'}
-                      >
-                        {case_.priority}
+                      <Badge variant={getPriorityVariant(case_.priority)}>
+                        {case_.priority || 'Medium'}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 text-sm">{case_.assignee}</td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">{case_.lastUpdate}</td>
+                    <td className="py-3 px-4 text-sm">
+                      {case_.assigned_to ? 'Assigned' : 'Unassigned'}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-muted-foreground">
+                      {format(new Date(case_.updated_at), 'MMM dd, yyyy')}
+                    </td>
                     <td className="py-3 px-4 text-right">
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end space-x-1">
+                        <Button variant="ghost" size="sm" title="View Details">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {(userProfile?.role === 'admin' || userProfile?.role === 'investigator' || case_.assigned_to === userProfile?.user_id) && (
+                          <Button variant="ghost" size="sm" title="Edit Case">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                      <div className="flex flex-col items-center">
+                        <FileText className="h-12 w-12 mb-4 opacity-50" />
+                        <p className="text-lg font-medium mb-2">No cases found</p>
+                        <p className="text-sm">Cases will appear here once they are created.</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
