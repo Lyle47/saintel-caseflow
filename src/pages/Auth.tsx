@@ -7,20 +7,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Shield, Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode');
   
-  const [isLogin, setIsLogin] = useState(mode !== 'reset');
+  const [isLogin, setIsLogin] = useState(mode !== 'reset' && mode !== 'update-password');
   const [isReset, setIsReset] = useState(mode === 'reset');
+  const [isUpdatePassword, setIsUpdatePassword] = useState(mode === 'update-password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { signIn, signUp, resetPassword, user } = useAuth();
+  const { signIn, signUp, resetPassword, updatePassword, user, session } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -33,7 +37,28 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isReset) {
+      if (isUpdatePassword) {
+        if (password !== confirmPassword) {
+          toast({
+            variant: "destructive",
+            title: "Password mismatch",
+            description: "Passwords do not match.",
+          });
+          return;
+        }
+        if (password.length < 6) {
+          toast({
+            variant: "destructive",
+            title: "Password too short", 
+            description: "Password must be at least 6 characters long.",
+          });
+          return;
+        }
+        const result = await updatePassword(password);
+        if (!result.error) {
+          navigate('/');
+        }
+      } else if (isReset) {
         await resetPassword(email);
         // Stay on reset form after sending email
       } else if (isLogin) {
@@ -60,12 +85,13 @@ const Auth = () => {
         <Card>
           <CardHeader>
             <div className="text-center">
-              {isReset && (
+              {(isReset || isUpdatePassword) && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setIsReset(false);
+                    setIsUpdatePassword(false);
                     setIsLogin(true);
                     navigate('/auth');
                   }}
@@ -76,13 +102,13 @@ const Auth = () => {
                 </Button>
               )}
               <CardTitle>
-                {isReset ? 'Reset Password' : isLogin ? 'Sign In' : 'Create Account'}
+                {isUpdatePassword ? 'Update Password' : isReset ? 'Reset Password' : isLogin ? 'Sign In' : 'Create Account'}
               </CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && !isReset && (
+              {!isLogin && !isReset && !isUpdatePassword && (
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
                   <div className="relative">
@@ -99,9 +125,9 @@ const Auth = () => {
                   </div>
                 </div>
               )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+              {!isUpdatePassword && (
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -131,11 +157,12 @@ const Auth = () => {
                       Enter your email address and we'll send you a link to reset your password.
                     </p>
                   )}
-              </div>
+                </div>
+              )}
               
-              {!isReset && (
+              {(!isReset || isUpdatePassword) && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{isUpdatePassword ? 'New Password' : 'Password'}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -144,26 +171,50 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
-                      placeholder="Enter your password"
+                      placeholder={isUpdatePassword ? "Enter your new password" : "Enter your password"}
                       required
                       minLength={6}
                     />
                   </div>
                 </div>
               )}
+
+              {isUpdatePassword && (
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pl-10"
+                      placeholder="Confirm your new password"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Password must be at least 6 characters long.
+                  </p>
+                </div>
+              )}
               
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading 
                   ? 'Processing...' 
-                  : isReset 
-                    ? 'Send Reset Link' 
-                    : isLogin 
-                      ? 'Sign In' 
-                      : 'Create Account'
+                  : isUpdatePassword
+                    ? 'Update Password'
+                    : isReset 
+                      ? 'Send Reset Link' 
+                      : isLogin 
+                        ? 'Sign In' 
+                        : 'Create Account'
                 }
               </Button>
               
-              {isLogin && (
+              {isLogin && !isUpdatePassword && (
                 <div className="text-center">
                   <Button
                     type="button"
@@ -177,7 +228,7 @@ const Auth = () => {
               )}
             </form>
             
-            {!isReset && (
+            {!isReset && !isUpdatePassword && (
               <>
                 <Separator className="my-6" />
                 

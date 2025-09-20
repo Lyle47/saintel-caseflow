@@ -13,6 +13,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
+  updatePassword: (password: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -155,7 +156,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/auth?mode=reset`;
+    const redirectUrl = `${window.location.origin}/auth?mode=update-password`;
     
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl,
@@ -177,6 +178,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: password
+    });
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Password update failed",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Password updated!",
+        description: "Your password has been updated successfully.",
+      });
+    }
+
+    return { error };
+  };
+
   const value = {
     user,
     session,
@@ -187,6 +209,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signOut,
     refreshProfile,
     resetPassword,
+    updatePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

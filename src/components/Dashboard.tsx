@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   FileText, 
   Clock, 
@@ -14,16 +15,21 @@ import {
   Eye,
   Edit,
   Users,
-  Activity
+  Activity,
+  BarChart3,
+  Plus
 } from "lucide-react";
 import { useCases } from "@/hooks/useCases";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { CaseFilters } from "@/components/CaseFilters";
+import { CaseAnalytics } from "@/components/CaseAnalytics";
 
 export function Dashboard() {
-  const { cases, loading } = useCases();
+  const { cases, loading, fetchCases } = useCases();
   const { userProfile } = useAuth();
+  const [filteredCases, setFilteredCases] = useState(cases);
   const [stats, setStats] = useState([
     { title: "Total Cases", value: "0", change: "0%", trend: "up", icon: FileText, color: "text-primary" },
     { title: "Open Cases", value: "0", change: "0%", trend: "up", icon: Clock, color: "text-warning" },
@@ -32,6 +38,7 @@ export function Dashboard() {
   ]);
 
   useEffect(() => {
+    setFilteredCases(cases);
     if (cases.length > 0) {
       const totalCases = cases.length;
       const openCases = cases.filter(c => c.status === 'open').length;
@@ -104,8 +111,90 @@ export function Dashboard() {
     }
   };
 
-  // Show most recent 10 cases
-  const recentCases = cases.slice(0, 10);
+  const handleFiltersChange = (filters: any) => {
+    let filtered = [...cases];
+
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      filtered = filtered.filter(case_ => 
+        case_.title.toLowerCase().includes(searchTerm) ||
+        case_.case_number.toLowerCase().includes(searchTerm) ||
+        case_.subject_name?.toLowerCase().includes(searchTerm) ||
+        case_.description?.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    if (filters.status) {
+      filtered = filtered.filter(case_ => case_.status === filters.status);
+    }
+
+    if (filters.caseType) {
+      filtered = filtered.filter(case_ => case_.case_type === filters.caseType);
+    }
+
+    if (filters.priority) {
+      filtered = filtered.filter(case_ => case_.priority === filters.priority);
+    }
+
+    if (filters.assignedTo) {
+      if (filters.assignedTo === 'assigned') {
+        filtered = filtered.filter(case_ => case_.assigned_to);
+      } else if (filters.assignedTo === 'unassigned') {
+        filtered = filtered.filter(case_ => !case_.assigned_to);
+      } else if (filters.assignedTo === 'my_cases') {
+        filtered = filtered.filter(case_ => 
+          case_.assigned_to === userProfile?.user_id || case_.created_by === userProfile?.user_id
+        );
+      }
+    }
+
+    if (filters.dateFrom) {
+      filtered = filtered.filter(case_ => 
+        new Date(case_.created_at) >= filters.dateFrom
+      );
+    }
+
+    if (filters.dateTo) {
+      filtered = filtered.filter(case_ => 
+        new Date(case_.created_at) <= filters.dateTo
+      );
+    }
+
+    setFilteredCases(filtered);
+  };
+
+  const handleNewCase = () => {
+    // Navigate to case creation - this would typically use router
+    console.log("Navigate to new case form");
+  };
+
+  const handleExport = () => {
+    // Export filtered cases to CSV
+    const csvContent = [
+      ['Case Number', 'Title', 'Type', 'Status', 'Priority', 'Created Date'].join(','),
+      ...filteredCases.map(case_ => [
+        case_.case_number,
+        `"${case_.title}"`,
+        case_.case_type,
+        case_.status,
+        case_.priority || 'Medium',
+        format(new Date(case_.created_at), 'yyyy-MM-dd')
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cases_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Show most recent cases from filtered results
+  const recentCases = filteredCases.slice(0, 20);
 
   if (loading) {
     return (
@@ -129,6 +218,22 @@ export function Dashboard() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back, {userProfile?.full_name}. Here's your case overview.
+          </p>
+        </div>
+        {(userProfile?.role === 'admin' || userProfile?.role === 'investigator') && (
+          <Button onClick={handleNewCase} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            New Case
+          </Button>
+        )}
+      </div>
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => {
@@ -158,23 +263,38 @@ export function Dashboard() {
         })}
       </div>
 
-      {/* Recent Cases Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold">Recent Cases</CardTitle>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
-              <Button variant="outline" size="sm">
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="cases" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+          <TabsTrigger value="cases" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Cases
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="cases" className="space-y-6">
+          {/* Case Filters */}
+          <CaseFilters 
+            onFiltersChange={handleFiltersChange}
+            totalCount={filteredCases.length}
+            loading={loading}
+            onRefresh={fetchCases}
+            onExport={handleExport}
+          />
+
+          {/* Cases Table */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl font-semibold">
+                  Cases ({filteredCases.length})
+                </CardTitle>
+              </div>
+            </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -250,7 +370,13 @@ export function Dashboard() {
             </table>
           </div>
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <CaseAnalytics cases={cases} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
