@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/useNotifications';
 
 export interface Case {
   id: string;
@@ -65,6 +66,7 @@ export const useCases = () => {
   const [loading, setLoading] = useState(true);
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
+  const { sendNotification } = useNotifications();
 
   const fetchCases = async () => {
     if (!user) return;
@@ -126,6 +128,9 @@ export const useCases = () => {
         description: `Case ${data.case_number} has been created successfully.`,
       });
 
+      // Send notification for new case
+      sendNotification('case_created', data.id);
+
       return data;
     } catch (error: any) {
       console.error('Error creating case:', error);
@@ -160,6 +165,14 @@ export const useCases = () => {
         title: "Case updated",
         description: "Case has been updated successfully.",
       });
+
+      // Send notifications for status changes or assignments
+      if (updates.status) {
+        sendNotification('case_status_changed', caseId);
+      }
+      if (updates.assigned_to) {
+        sendNotification('case_assigned', caseId);
+      }
 
       return data;
     } catch (error: any) {

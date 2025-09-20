@@ -1,21 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Shield, Mail, Lock, User } from 'lucide-react';
+import { Shield, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode');
+  
+  const [isLogin, setIsLogin] = useState(mode !== 'reset');
+  const [isReset, setIsReset] = useState(mode === 'reset');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, resetPassword, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,7 +33,10 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (isReset) {
+        await resetPassword(email);
+        // Stay on reset form after sending email
+      } else if (isLogin) {
         await signIn(email, password);
       } else {
         await signUp(email, password, fullName);
@@ -52,13 +59,30 @@ const Auth = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-center">
-              {isLogin ? 'Sign In' : 'Create Account'}
-            </CardTitle>
+            <div className="text-center">
+              {isReset && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsReset(false);
+                    setIsLogin(true);
+                    navigate('/auth');
+                  }}
+                  className="mb-2"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Sign In
+                </Button>
+              )}
+              <CardTitle>
+                {isReset ? 'Reset Password' : isLogin ? 'Sign In' : 'Create Account'}
+              </CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
+              {!isLogin && !isReset && (
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
                   <div className="relative">
@@ -86,53 +110,91 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
-                      placeholder={isLogin ? "Enter your email" : "Enter your @sageintel.co.za email"}
+                      placeholder={
+                        isReset 
+                          ? "Enter your email address" 
+                          : isLogin 
+                            ? "Enter your email" 
+                            : "Enter your @sageintel.co.za email"
+                      }
                       required
                     />
                   </div>
-                  {!isLogin && (
+                  {!isLogin && !isReset && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Only @sageintel.co.za email addresses are allowed to register.
                     </p>
                   )}
+                  
+                  {isReset && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter your email address and we'll send you a link to reset your password.
+                    </p>
+                  )}
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    placeholder="Enter your password"
-                    required
-                    minLength={6}
-                  />
+              {!isReset && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10"
+                      placeholder="Enter your password"
+                      required
+                      minLength={6}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
               
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
+                {loading 
+                  ? 'Processing...' 
+                  : isReset 
+                    ? 'Send Reset Link' 
+                    : isLogin 
+                      ? 'Sign In' 
+                      : 'Create Account'
+                }
               </Button>
+              
+              {isLogin && (
+                <div className="text-center">
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={() => setIsReset(true)}
+                    className="text-sm"
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
+              )}
             </form>
             
-            <Separator className="my-6" />
-            
-            <div className="text-center">
-              <p className="text-muted-foreground">
-                {isLogin ? "Don't have an account?" : 'Already have an account?'}
-              </p>
-              <Button
-                variant="link"
-                onClick={() => setIsLogin(!isLogin)}
-                className="p-0"
-              >
-                {isLogin ? 'Create one here' : 'Sign in here'}
-              </Button>
-            </div>
+            {!isReset && (
+              <>
+                <Separator className="my-6" />
+                
+                <div className="text-center">
+                  <p className="text-muted-foreground">
+                    {isLogin ? "Don't have an account?" : 'Already have an account?'}
+                  </p>
+                  <Button
+                    variant="link"
+                    onClick={() => setIsLogin(!isLogin)}
+                    className="p-0"
+                  >
+                    {isLogin ? 'Create one here' : 'Sign in here'}
+                  </Button>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
         
