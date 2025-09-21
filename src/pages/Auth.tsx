@@ -10,7 +10,7 @@ import { Shield, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const mode = searchParams.get('mode');
   
   const [isLogin, setIsLogin] = useState(mode !== 'reset' && mode !== 'update-password');
@@ -27,10 +27,22 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user && !isUpdatePassword) {
+    // Check for password reset hash in URL
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery' && accessToken && refreshToken) {
+      setIsUpdatePassword(true);
+      setIsLogin(false);
+      setIsReset(false);
+      // Update URL to show the update password mode
+      setSearchParams({ mode: 'update-password' });
+    } else if (user && !isUpdatePassword) {
       navigate('/');
     }
-  }, [user, navigate, isUpdatePassword]);
+  }, [user, navigate, setSearchParams, isUpdatePassword]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
