@@ -27,10 +27,10 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
+    if (user && !isUpdatePassword) {
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, navigate, isUpdatePassword]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +56,14 @@ const Auth = () => {
         }
         const result = await updatePassword(password);
         if (!result.error) {
-          navigate('/');
+          toast({
+            title: "Password updated successfully!",
+            description: "You can now sign in with your new password.",
+          });
+          // Clear the mode and redirect to login
+          setIsUpdatePassword(false);
+          setIsLogin(true);
+          navigate('/auth');
         }
       } else if (isReset) {
         await resetPassword(email);
