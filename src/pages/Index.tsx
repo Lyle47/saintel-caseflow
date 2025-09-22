@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { Header } from "@/components/Header";
 import { Dashboard } from "@/components/Dashboard";
 import { CaseForm } from "@/components/CaseForm";
+import { UserManagement } from "@/components/UserManagement";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Home, 
   FileText, 
@@ -16,21 +20,44 @@ import {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const { userProfile } = useAuth();
+  const { stats, loading: statsLoading } = useDashboardStats();
 
-  const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "cases", label: "All Cases", icon: FileText },
-    { id: "create", label: "New Case", icon: Plus },
-    { id: "search", label: "Search", icon: Search },
-    { id: "archive", label: "Archive", icon: Archive },
-    { id: "users", label: "Users", icon: Users },
-    { id: "settings", label: "Settings", icon: Settings },
-  ];
+  // Filter menu items based on user role
+  const getMenuItems = () => {
+    const baseItems = [
+      { id: "dashboard", label: "Dashboard", icon: Home },
+      { id: "cases", label: "All Cases", icon: FileText },
+    ];
+
+    // Add creation capability for investigators and admins
+    if (userProfile?.role === 'investigator' || userProfile?.role === 'admin') {
+      baseItems.push({ id: "create", label: "New Case", icon: Plus });
+    }
+
+    baseItems.push(
+      { id: "search", label: "Search", icon: Search },
+      { id: "archive", label: "Archive", icon: Archive }
+    );
+
+    // Only admins can access user management
+    if (userProfile?.role === 'admin') {
+      baseItems.push({ id: "users", label: "Users", icon: Users });
+    }
+
+    baseItems.push({ id: "settings", label: "Settings", icon: Settings });
+
+    return baseItems;
+  };
+
+  const menuItems = getMenuItems();
 
   const renderContent = () => {
     switch (activeTab) {
       case "create":
         return <CaseForm />;
+      case "users":
+        return <UserManagement />;
       case "dashboard":
       default:
         return <Dashboard />;
@@ -66,18 +93,43 @@ const Index = () => {
             <div className="mt-8 p-4 bg-muted/50 rounded-lg">
               <h3 className="font-semibold text-sm mb-3">Quick Overview</h3>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Open Cases</span>
-                  <Badge variant="outline">43</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>This Month</span>
-                  <Badge variant="outline">12</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>High Priority</span>
-                  <Badge variant="destructive">7</Badge>
-                </div>
+                {statsLoading ? (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span>Open Cases</span>
+                      <Skeleton className="h-5 w-8" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>This Month</span>
+                      <Skeleton className="h-5 w-8" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>High Priority</span>
+                      <Skeleton className="h-5 w-8" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Open Cases</span>
+                      <Badge variant="outline">{stats.openCases}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>This Month</span>
+                      <Badge variant="outline">{stats.monthlyNewCases}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>High Priority</span>
+                      <Badge variant="destructive">{stats.highPriorityCases}</Badge>
+                    </div>
+                    {userProfile?.role === 'volunteer' && (
+                      <div className="flex justify-between">
+                        <span>Assigned to Me</span>
+                        <Badge variant="secondary">{stats.assignedCases}</Badge>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
