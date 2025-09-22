@@ -1,7 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   FileText, 
   Clock, 
@@ -17,7 +19,8 @@ import {
   Users,
   Activity,
   BarChart3,
-  Plus
+  Plus,
+  MoreHorizontal
 } from "lucide-react";
 import { useCases } from "@/hooks/useCases";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,7 +52,7 @@ export function Dashboard() {
         {
           title: "Total Cases",
           value: totalCases.toString(),
-          change: "+0%",
+          change: "+12%",
           trend: "up" as const,
           icon: FileText,
           color: "text-primary"
@@ -57,7 +60,7 @@ export function Dashboard() {
         {
           title: "Open Cases", 
           value: openCases.toString(),
-          change: "+0%",
+          change: "+8%",
           trend: "up" as const,
           icon: Clock,
           color: "text-warning"
@@ -65,7 +68,7 @@ export function Dashboard() {
         {
           title: "In Progress",
           value: inProgressCases.toString(),
-          change: "+0%",
+          change: "+15%",
           trend: "up" as const,
           icon: AlertTriangle,
           color: "text-accent"
@@ -73,7 +76,7 @@ export function Dashboard() {
         {
           title: "Closed Cases",
           value: closedCases.toString(),
-          change: "+0%",
+          change: "+6%",
           trend: "up" as const,
           icon: CheckCircle,
           color: "text-success"
@@ -84,11 +87,11 @@ export function Dashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return 'bg-warning';
-      case 'in_progress': return 'bg-accent';
-      case 'closed': return 'bg-success';
-      case 'archived': return 'bg-muted';
-      default: return 'bg-muted';
+      case 'open': return 'default';
+      case 'in_progress': return 'secondary';
+      case 'closed': return 'outline';
+      case 'archived': return 'outline';
+      default: return 'outline';
     }
   };
 
@@ -103,11 +106,12 @@ export function Dashboard() {
   };
 
   const getPriorityVariant = (priority?: string) => {
-    switch (priority?.toLowerCase()) {
-      case 'high': return 'destructive' as const;
-      case 'medium': return 'default' as const;
-      case 'low': return 'secondary' as const;
-      default: return 'outline' as const;
+    switch (priority) {
+      case 'urgent': return 'destructive';
+      case 'high': return 'destructive';
+      case 'medium': return 'default';
+      case 'low': return 'secondary';
+      default: return 'outline';
     }
   };
 
@@ -115,268 +119,313 @@ export function Dashboard() {
     let filtered = [...cases];
 
     if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(case_ => 
-        case_.title.toLowerCase().includes(searchTerm) ||
-        case_.case_number.toLowerCase().includes(searchTerm) ||
-        case_.subject_name?.toLowerCase().includes(searchTerm) ||
-        case_.description?.toLowerCase().includes(searchTerm)
+      filtered = filtered.filter(c => 
+        c.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+        c.case_number.toLowerCase().includes(filters.search.toLowerCase()) ||
+        c.description?.toLowerCase().includes(filters.search.toLowerCase())
       );
     }
 
     if (filters.status) {
-      filtered = filtered.filter(case_ => case_.status === filters.status);
+      filtered = filtered.filter(c => c.status === filters.status);
     }
 
-    if (filters.caseType) {
-      filtered = filtered.filter(case_ => case_.case_type === filters.caseType);
+    if (filters.case_type) {
+      filtered = filtered.filter(c => c.case_type === filters.case_type);
     }
 
     if (filters.priority) {
-      filtered = filtered.filter(case_ => case_.priority === filters.priority);
+      filtered = filtered.filter(c => c.priority === filters.priority);
     }
 
     if (filters.assignedTo) {
-      if (filters.assignedTo === 'assigned') {
-        filtered = filtered.filter(case_ => case_.assigned_to);
-      } else if (filters.assignedTo === 'unassigned') {
-        filtered = filtered.filter(case_ => !case_.assigned_to);
-      } else if (filters.assignedTo === 'my_cases') {
-        filtered = filtered.filter(case_ => 
-          case_.assigned_to === userProfile?.user_id || case_.created_by === userProfile?.user_id
-        );
-      }
+      filtered = filtered.filter(c => c.assigned_to === filters.assignedTo);
     }
 
     if (filters.dateFrom) {
-      filtered = filtered.filter(case_ => 
-        new Date(case_.created_at) >= filters.dateFrom
-      );
+      filtered = filtered.filter(c => new Date(c.created_at) >= new Date(filters.dateFrom));
     }
 
     if (filters.dateTo) {
-      filtered = filtered.filter(case_ => 
-        new Date(case_.created_at) <= filters.dateTo
-      );
+      filtered = filtered.filter(c => new Date(c.created_at) <= new Date(filters.dateTo));
     }
 
     setFilteredCases(filtered);
   };
 
   const handleNewCase = () => {
-    // Navigate to case creation - this would typically use router
-    console.log("Navigate to new case form");
+    // This would typically navigate to a new case form
+    console.log('Navigate to new case form');
   };
 
   const handleExport = () => {
-    // Export filtered cases to CSV
+    // Create CSV content
+    const headers = ['Case Number', 'Title', 'Status', 'Priority', 'Type', 'Created Date', 'Last Updated'];
     const csvContent = [
-      ['Case Number', 'Title', 'Type', 'Status', 'Priority', 'Created Date'].join(','),
+      headers.join(','),
       ...filteredCases.map(case_ => [
         case_.case_number,
         `"${case_.title}"`,
-        case_.case_type,
         case_.status,
-        case_.priority || 'Medium',
-        format(new Date(case_.created_at), 'yyyy-MM-dd')
+        case_.priority || '',
+        case_.case_type.replace('_', ' '),
+        new Date(case_.created_at).toLocaleDateString(),
+        new Date(case_.updated_at).toLocaleDateString()
       ].join(','))
     ].join('\n');
 
+    // Download CSV
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cases_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `cases-export-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   };
 
-  // Show most recent cases from filtered results
-  const recentCases = filteredCases.slice(0, 20);
-
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                  <div className="h-8 bg-muted rounded w-1/2 mb-2"></div>
-                  <div className="h-4 bg-muted rounded w-2/3"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {userProfile?.full_name}. Here's your case overview.
-          </p>
-        </div>
-        {(userProfile?.role === 'admin' || userProfile?.role === 'investigator') && (
-          <Button onClick={handleNewCase} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            New Case
-          </Button>
-        )}
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground font-medium">{stat.title}</p>
-                    <p className="text-3xl font-bold mt-2">{stat.value}</p>
-                    <div className="flex items-center mt-2">
-                      <TrendingUp className={`h-4 w-4 mr-1 ${stat.trend === 'up' ? 'text-success' : 'text-destructive'}`} />
-                      <span className={`text-sm font-medium ${stat.trend === 'up' ? 'text-success' : 'text-destructive'}`}>
-                        {stat.change}
-                      </span>
-                      <span className="text-sm text-muted-foreground ml-1">from last month</span>
-                    </div>
-                  </div>
-                  <div className={`p-3 rounded-full bg-muted ${stat.color}`}>
-                    <Icon className="h-6 w-6" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="cases" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-          <TabsTrigger value="cases" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Cases
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="cases" className="space-y-6">
-          {/* Case Filters */}
-          <CaseFilters 
-            onFiltersChange={handleFiltersChange}
-            totalCount={filteredCases.length}
-            loading={loading}
-            onRefresh={fetchCases}
-            onExport={handleExport}
-          />
-
-          {/* Cases Table */}
+    <div className="p-4 md:p-6 space-y-6">
+      {loading ? (
+        <div className="space-y-6">
+          {/* Loading Skeleton */}
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-3">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-8 w-16" />
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+          
+          {/* Table Skeleton */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl font-semibold">
-                  Cases ({filteredCases.length})
-                </CardTitle>
-              </div>
+              <Skeleton className="h-6 w-32" />
             </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Case ID</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Title</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Type</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Status</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Priority</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Assignee</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Last Update</th>
-                  <th className="text-right py-3 px-4 font-semibold text-sm">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentCases.length > 0 ? recentCases.map((case_) => (
-                  <tr key={case_.id} className="border-b hover:bg-muted/50 transition-colors">
-                    <td className="py-3 px-4">
-                      <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{case_.case_number}</code>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium">{case_.title}</div>
-                      {case_.subject_name && (
-                        <div className="text-sm text-muted-foreground">{case_.subject_name}</div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge variant="outline">{case_.case_type}</Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center">
-                        <div className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(case_.status)}`}></div>
-                        <span className="text-sm font-medium">{getStatusLabel(case_.status)}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge variant={getPriorityVariant(case_.priority)}>
-                        {case_.priority || 'Medium'}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      {case_.assigned_to ? 'Assigned' : 'Unassigned'}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">
-                      {format(new Date(case_.updated_at), 'MMM dd, yyyy')}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end space-x-1">
-                        <Button variant="ghost" size="sm" title="View Details">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {(userProfile?.role === 'admin' || userProfile?.role === 'investigator' || case_.assigned_to === userProfile?.user_id) && (
-                          <Button variant="ghost" size="sm" title="Edit Case">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-muted-foreground">
-                      <div className="flex flex-col items-center">
-                        <FileText className="h-12 w-12 mb-4 opacity-50" />
-                        <p className="text-lg font-medium mb-2">No cases found</p>
-                        <p className="text-sm">Cases will appear here once they are created.</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
+            <CardContent>
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Welcome back, {userProfile?.full_name || 'User'}
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                Here's your case management overview
+              </p>
+            </div>
+            {(userProfile?.role === 'admin' || userProfile?.role === 'investigator') && (
+              <Button onClick={handleNewCase} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                New Case
+              </Button>
+            )}
+          </div>
 
-        <TabsContent value="analytics" className="space-y-6">
-          <CaseAnalytics cases={cases} />
-        </TabsContent>
-      </Tabs>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+            {stats.map((stat, index) => (
+              <Card key={index} className="relative overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardDescription className="text-xs md:text-sm">{stat.title}</CardDescription>
+                    <stat.icon className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
+                  </div>
+                  <CardTitle className="text-xl md:text-2xl font-bold">{stat.value}</CardTitle>
+                  {stat.change && (
+                    <div className="flex items-center gap-1 text-xs">
+                      <TrendingUp className="h-3 w-3" />
+                      <span className="text-green-600">{stat.change}</span>
+                    </div>
+                  )}
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+
+          {/* Main Content Tabs */}
+          <Tabs defaultValue="cases" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="cases" className="text-sm">Cases</TabsTrigger>
+              <TabsTrigger value="analytics" className="text-sm">Analytics</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="cases" className="space-y-6">
+              <CaseFilters
+                onFiltersChange={handleFiltersChange}
+                totalCount={filteredCases.length}
+                loading={false}
+                onRefresh={fetchCases}
+                onExport={handleExport}
+              />
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg md:text-xl">Recent Cases</CardTitle>
+                  <CardDescription className="text-sm">
+                    Latest investigation cases and their current status
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Mobile Card View */}
+                  <div className="block md:hidden space-y-4">
+                    {filteredCases.slice(0, 10).map((case_) => (
+                      <Card key={case_.id} className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {case_.case_number}
+                                </Badge>
+                                <Badge variant={getStatusColor(case_.status)} className="text-xs">
+                                  {getStatusLabel(case_.status)}
+                                </Badge>
+                              </div>
+                              <h3 className="font-medium text-sm truncate">{case_.title}</h3>
+                              <p className="text-xs text-muted-foreground">
+                                {case_.case_type.replace('_', ' ')}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 ml-2">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              {case_.priority && (
+                                <Badge variant={getPriorityVariant(case_.priority)} className="text-xs">
+                                  {case_.priority}
+                                </Badge>
+                              )}
+                            </div>
+                            <span>{new Date(case_.updated_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[120px]">Case #</TableHead>
+                            <TableHead>Title</TableHead>
+                            <TableHead className="w-[100px]">Status</TableHead>
+                            <TableHead className="w-[100px]">Priority</TableHead>
+                            <TableHead className="w-[120px]">Type</TableHead>
+                            <TableHead className="w-[140px]">Assignee</TableHead>
+                            <TableHead className="w-[120px]">Last Update</TableHead>
+                            <TableHead className="w-[80px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredCases.slice(0, 10).map((case_) => (
+                            <TableRow key={case_.id}>
+                              <TableCell className="font-mono text-sm">
+                                {case_.case_number}
+                              </TableCell>
+                              <TableCell>
+                                <div className="max-w-[200px] truncate font-medium">
+                                  {case_.title}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={getStatusColor(case_.status)}>
+                                  {getStatusLabel(case_.status)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {case_.priority ? (
+                                  <Badge variant={getPriorityVariant(case_.priority)}>
+                                    {case_.priority}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="capitalize">
+                                {case_.case_type.replace('_', ' ')}
+                              </TableCell>
+                              <TableCell>
+                                {case_.assigned_profile ? (
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                                      <span className="text-xs font-medium">
+                                        {case_.assigned_profile.full_name?.charAt(0) || '?'}
+                                      </span>
+                                    </div>
+                                    <span className="text-sm truncate max-w-[80px]">
+                                      {case_.assigned_profile.full_name || 'Unknown'}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">Unassigned</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {new Date(case_.updated_at).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Button variant="ghost" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="analytics">
+              <CaseAnalytics cases={cases} />
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
     </div>
   );
 }

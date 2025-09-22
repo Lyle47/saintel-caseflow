@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { Dashboard } from "@/components/Dashboard";
 import { CaseForm } from "@/components/CaseForm";
 import { UserManagement } from "@/components/UserManagement";
+import { MobileNavigation } from "@/components/MobileNavigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,7 +56,7 @@ const Index = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "create":
-        return <CaseForm />;
+        return <CaseForm onBack={() => setActiveTab("dashboard")} />;
       case "users":
         return <UserManagement />;
       case "dashboard":
@@ -69,8 +70,8 @@ const Index = () => {
       <Header />
       
       <div className="flex">
-        {/* Sidebar Navigation */}
-        <aside className="w-64 bg-card border-r border-border min-h-[calc(100vh-88px)]">
+        {/* Desktop Sidebar Navigation */}
+        <aside className="hidden md:block w-64 bg-card border-r border-border min-h-[calc(100vh-88px)]">
           <div className="p-4">
             <nav className="space-y-2">
               {menuItems.map((item) => {
@@ -135,8 +136,20 @@ const Index = () => {
           </div>
         </aside>
 
+        {/* Mobile Navigation */}
+        <div className="md:hidden fixed top-16 left-4 z-50">
+          <MobileNavigation
+            menuItems={menuItems}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            stats={stats}
+            statsLoading={statsLoading}
+            userProfile={userProfile}
+          />
+        </div>
+
         {/* Main Content */}
-        <main className="flex-1">
+        <main className="flex-1 w-full min-w-0">
           {renderContent()}
         </main>
       </div>
