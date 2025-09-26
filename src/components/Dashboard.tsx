@@ -20,17 +20,25 @@ import {
   Activity,
   BarChart3,
   Plus,
-  MoreHorizontal
+  MoreHorizontal,
+  Download
 } from "lucide-react";
 import { useCases } from "@/hooks/useCases";
+import { useCaseExport } from "@/hooks/useCaseExport";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { CaseFilters } from "@/components/CaseFilters";
 import { CaseAnalytics } from "@/components/CaseAnalytics";
 
-export function Dashboard() {
+interface DashboardProps {
+  onCreateCase?: () => void;
+  onViewCase?: (caseData: any) => void;
+}
+
+export function Dashboard({ onCreateCase, onViewCase }: DashboardProps) {
   const { cases, loading, fetchCases } = useCases();
+  const { exportCase } = useCaseExport();
   const { userProfile } = useAuth();
   const [filteredCases, setFilteredCases] = useState(cases);
   const [stats, setStats] = useState([
@@ -154,8 +162,11 @@ export function Dashboard() {
   };
 
   const handleNewCase = () => {
-    // This would typically navigate to a new case form
-    console.log('Navigate to new case form');
+    if (onCreateCase) {
+      onCreateCase();
+    } else {
+      console.log('Navigate to new case form');
+    }
   };
 
   const handleExport = () => {
@@ -313,8 +324,21 @@ export function Dashboard() {
                               </p>
                             </div>
                             <div className="flex items-center gap-1 ml-2">
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0"
+                                onClick={() => onViewCase?.(case_)}
+                              >
                                 <Eye className="h-3 w-3" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0"
+                                onClick={() => exportCase(case_)}
+                              >
+                                <Download className="h-3 w-3" />
                               </Button>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                 <MoreHorizontal className="h-3 w-3" />
@@ -402,8 +426,19 @@ export function Dashboard() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-1">
-                                  <Button variant="ghost" size="sm">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => onViewCase?.(case_)}
+                                  >
                                     <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => exportCase(case_)}
+                                  >
+                                    <Download className="h-4 w-4" />
                                   </Button>
                                   <Button variant="ghost" size="sm">
                                     <MoreHorizontal className="h-4 w-4" />

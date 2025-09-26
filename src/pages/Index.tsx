@@ -4,6 +4,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { Header } from "@/components/Header";
 import { Dashboard } from "@/components/Dashboard";
 import { CaseForm } from "@/components/CaseForm";
+import { CaseDetailsView } from "@/components/CaseDetailsView";
 import { UserManagement } from "@/components/UserManagement";
 import { MobileNavigation } from "@/components/MobileNavigation";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedCase, setSelectedCase] = useState<any>(null);
   const { userProfile } = useAuth();
   const { stats, loading: statsLoading } = useDashboardStats();
 
@@ -53,15 +55,33 @@ const Index = () => {
 
   const menuItems = getMenuItems();
 
+  const handleViewCase = (caseData: any) => {
+    setSelectedCase(caseData);
+    setActiveTab("caseDetails");
+  };
+
+  const handleCreateCase = () => {
+    setActiveTab("create");
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case "create":
         return <CaseForm onBack={() => setActiveTab("dashboard")} />;
       case "users":
         return <UserManagement />;
+      case "caseDetails":
+        return selectedCase ? (
+          <CaseDetailsView 
+            caseId={selectedCase.id} 
+            onBack={() => setActiveTab("dashboard")} 
+          />
+        ) : (
+          <Dashboard onCreateCase={handleCreateCase} onViewCase={handleViewCase} />
+        );
       case "dashboard":
       default:
-        return <Dashboard />;
+        return <Dashboard onCreateCase={handleCreateCase} onViewCase={handleViewCase} />;
     }
   };
 
